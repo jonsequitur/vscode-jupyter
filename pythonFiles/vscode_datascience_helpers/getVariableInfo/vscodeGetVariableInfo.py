@@ -3,8 +3,6 @@ import json as _VSCODE_json
 import builtins as _VSCODE_builtins
 import re as _VSCODE_re
 
-_VSCODE_torchSizePattern = _VSCODE_re.compile(r"torch.Size\(\[(\d+(?:, \d+)*)\]\)")
-
 # Function to do our work. It will return the object
 def _VSCODE_getVariableInfo(var):
     # Start out without the information
@@ -30,10 +28,8 @@ def _VSCODE_getVariableInfo(var):
                     and "," in _VSCODE_shapeStr
                 ):
                     result["shape"] = _VSCODE_shapeStr
-                elif _VSCODE_shapeStr.startswith("torch.Size"):
-                    matches = _VSCODE_torchSizePattern.match(_VSCODE_shapeStr)
-                    if matches:
-                        result["shape"] = "(" + matches.group(1) + ")"
+                elif _VSCODE_shapeStr.startswith("torch.Size(["):
+                    result["shape"] = "(" + _VSCODE_shapeStr[12:-2] + ")"
                 del _VSCODE_shapeStr
         except TypeError:
             pass

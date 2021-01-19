@@ -181,9 +181,9 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
             };
 
             // Transform columns so they are sortable and stylable
-            const columns = this.props.columns.map((c) => {
+            const columns = this.props.columns.map((c, idx) => {
                 c.sortable = true;
-                c.editor = Slick.Editors.Text;
+                c.editor = idx === 0 ? undefined : Slick.Editors.Text; // Ensure index column is not editable
                 c.headerCssClass = 'react-grid-header-cell';
                 c.cssClass = 'react-grid-cell';
                 return c;

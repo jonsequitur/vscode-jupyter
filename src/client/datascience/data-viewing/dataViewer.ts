@@ -26,7 +26,8 @@ import {
     IDataViewer,
     IDataViewerDataProvider,
     IDataViewerMapping,
-    IGetRowsRequest
+    IGetRowsRequest,
+    ISlickGridCellCoordinates
 } from './types';
 
 const dataExplorerDir = path.join(EXTENSION_ROOT_DIR, 'out', 'datascience-ui', 'viewers');
@@ -105,6 +106,10 @@ export class DataViewer extends WebviewPanelHost<IDataViewerMapping> implements 
             case DataViewerMessages.GetRowsRequest:
                 this.getRowChunk(payload as IGetRowsRequest).ignoreErrors();
                 break;
+            
+            case DataViewerMessages.GetCellDetailRequest:
+                this.getCellDetail(payload).ignoreErrors();
+                break;
 
             default:
                 break;
@@ -163,6 +168,19 @@ export class DataViewer extends WebviewPanelHost<IDataViewerMapping> implements 
                     start: request.start,
                     end: request.end
                 });
+            }
+        });
+    }
+
+    private getCellDetail(request: ISlickGridCellCoordinates) {
+        return this.wrapRequest(async () => {
+            if (this.dataProvider && this.dataProvider.getDetail) {
+                const data = await this.dataProvider.getDetail(request.row, request.column);
+                if (data) {
+                    return this.postMessage(DataViewerMessages.GetCellDetailResponse, data);
+                } else {
+                    traceError(`Failed to fetch data at row ${request.row} and column ${request.column}`);
+                }
             }
         });
     }

@@ -16,7 +16,8 @@ import {
     IDataFrameInfo,
     IDataViewerMapping,
     IGetRowsResponse,
-    IRowsResponse
+    IRowsResponse,
+    ISlickGridCellDetail
 } from '../../client/datascience/data-viewing/types';
 import { SharedMessages } from '../../client/datascience/messages';
 import { IJupyterExtraSettings } from '../../client/datascience/types';
@@ -45,6 +46,7 @@ interface IMainPanelState {
     indexColumn: string;
     styleReady: boolean;
     settings?: IJupyterExtraSettings;
+    ndim: number;
 }
 
 export class MainPanel extends React.Component<IMainPanelProps, IMainPanelState> implements IMessageHandler {
@@ -52,6 +54,7 @@ export class MainPanel extends React.Component<IMainPanelProps, IMainPanelState>
     private sentDone = false;
     private postOffice: PostOffice = new PostOffice();
     private gridAddEvent: Slick.Event<ISlickGridAdd> = new Slick.Event<ISlickGridAdd>();
+    private setCellDetailEvent: Slick.Event<ISlickGridCellDetail> = new Slick.Event<ISlickGridCellDetail>();
     private rowFetchSizeFirst: number = 0;
     private rowFetchSizeSubsequent: number = 0;
     private rowFetchSizeAll: number = 0;
@@ -74,7 +77,8 @@ export class MainPanel extends React.Component<IMainPanelProps, IMainPanelState>
                 fetchedRowCount: -1,
                 filters: {},
                 indexColumn: data.primaryKeys[0],
-                styleReady: false
+                styleReady: false,
+                ndim: 2
             };
 
             // Fire off a timer to mimic dynamic loading
@@ -87,7 +91,8 @@ export class MainPanel extends React.Component<IMainPanelProps, IMainPanelState>
                 fetchedRowCount: -1,
                 filters: {},
                 indexColumn: 'index',
-                styleReady: false
+                styleReady: false,
+                ndim: 2
             };
         }
     }
@@ -156,6 +161,10 @@ export class MainPanel extends React.Component<IMainPanelProps, IMainPanelState>
                 this.initializeLoc(payload);
                 break;
 
+            case DataViewerMessages.GetCellDetailResponse:
+                this.handleGetCellDetailResponse(payload);
+                break;
+
             default:
                 break;
         }
@@ -193,6 +202,9 @@ export class MainPanel extends React.Component<IMainPanelProps, IMainPanelState>
                 filterRowsText={filterRowsText}
                 filterRowsTooltip={filterRowsTooltip}
                 forceHeight={this.props.testMode ? 200 : undefined}
+                setCellDetail={this.setCellDetailEvent}
+                getCellDetail={this.getCellDetail}
+                ndim={this.state.ndim}
             />
         );
     }
@@ -213,7 +225,8 @@ export class MainPanel extends React.Component<IMainPanelProps, IMainPanelState>
                     gridRows: initialRows,
                     totalRowCount,
                     fetchedRowCount: initialRows.length,
-                    indexColumn: indexColumn
+                    indexColumn: indexColumn,
+                    ndim: variable?.shape?.split(',').length ?? 2
                 });
 
                 // Compute our row fetch sizes based on the number of columns
@@ -332,5 +345,13 @@ export class MainPanel extends React.Component<IMainPanelProps, IMainPanelState>
         } else {
             this.gridAddEvent.notify({ newRows });
         }
+    }
+
+    private getCellDetail = (row: number, column: number) => {
+        this.sendMessage(DataViewerMessages.GetCellDetailRequest, { row, column });
+    }
+
+    private handleGetCellDetailResponse(data: ISlickGridCellDetail) {
+        this.setCellDetailEvent.notify(data);
     }
 }

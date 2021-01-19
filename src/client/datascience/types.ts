@@ -897,7 +897,8 @@ export interface IJupyterVariables {
         targetVariable: IJupyterVariable,
         start: number,
         end: number,
-        notebook?: INotebook
+        notebook?: INotebook,
+        truncateStrings?: 'True' | 'False'
     ): Promise<JSONObject>;
     getMatchingVariable(
         name: string,

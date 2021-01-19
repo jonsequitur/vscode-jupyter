@@ -136,7 +136,8 @@ export class DebuggerVariables extends DebugLocationTracker
         targetVariable: IJupyterVariable,
         start: number,
         end: number,
-        notebook?: INotebook
+        notebook?: INotebook,
+        truncateStrings = 'True'
     ): Promise<{}> {
         // Run the get dataframe rows script
         if (!this.debugService.activeDebugSession || targetVariable.columns === undefined) {
@@ -163,7 +164,7 @@ export class DebuggerVariables extends DebugLocationTracker
         for (let pos = start; pos < end; pos += chunkSize) {
             const chunkEnd = Math.min(pos + chunkSize, minnedEnd);
             const results = await this.evaluate(
-                `${DataFrameLoading.DataFrameRowImportFunc}(${targetVariable.name}, ${pos}, ${chunkEnd})`,
+                `${DataFrameLoading.DataFrameRowImportFunc}(${targetVariable.name}, ${pos}, ${chunkEnd}, ${truncateStrings})`,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (targetVariable as any).frameId
             );

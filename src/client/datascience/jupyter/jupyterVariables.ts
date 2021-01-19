@@ -62,9 +62,10 @@ export class JupyterVariables implements IJupyterVariables {
         targetVariable: IJupyterVariable,
         start: number,
         end: number,
-        notebook?: INotebook
+        notebook?: INotebook,
+        truncateStrings: 'True' | 'False' = 'True'
     ): Promise<JSONObject> {
-        return (await this.getVariableHandler(notebook)).getDataFrameRows(targetVariable, start, end, notebook);
+        return (await this.getVariableHandler(notebook)).getDataFrameRows(targetVariable, start, end, notebook, truncateStrings);
     }
 
     private async getVariableHandler(notebook?: INotebook): Promise<IJupyterVariables> {

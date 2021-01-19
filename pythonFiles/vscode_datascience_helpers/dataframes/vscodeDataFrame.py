@@ -8,28 +8,31 @@ import pandas.io.json as _VSCODE_pd_json
 _VSCODE_allowedTensorTypes = ["Tensor", "EagerTensor"]
 
 # Function to convert >2D numpy arrays to a flat 2D string representation
-def _VSCODE_flattenMultidimensionalData(data):
+def _VSCODE_flattenMultidimensionalData(data, truncate_long_strings):
     if hasattr(data, 'ndim') and data.ndim > 2:
         x_len = data.shape[0]
         y_len = data.shape[1]
         flattened = _VSCODE_np.empty((x_len, y_len), dtype=object)
         for i in range(x_len):
             for j in range(y_len):
-                # Generate a preview of the data
-                flat = data[i][j]
-                first_three = flat[:3]
-                currval = _VSCODE_np.array2string(first_three, separator=', ', threshold=5)
-                flattened[i][j] = currval[:-1] + ", ...]" if len(flat) > 3 else currval
-        del flat
-        del first_three
-        del currval
+                if truncate_long_strings:
+                    # Generate a preview of the data
+                    flat = data[i][j]
+                    first_three = flat[:3]
+                    currval = _VSCODE_np.array2string(first_three, separator=', ')
+                    flattened[i][j] = currval[:-1] + ", ...]" if len(flat) > 3 else currval
+                    del flat
+                    del first_three
+                    del currval
+                else:
+                    flattened[i][j] = _VSCODE_np.array2string(data[i][j], separator=', ')
         del x_len
         del y_len
         return flattened
     return data
 
 # Function that converts tensors to DataFrames
-def _VSCODE_convertTensorToDataFrame(tensor):
+def _VSCODE_convertTensorToDataFrame(tensor, truncate_long_strings):
     try:
         temp = tensor
         # Can't directly convert sparse tensors to numpy arrays
@@ -41,7 +44,7 @@ def _VSCODE_convertTensorToDataFrame(tensor):
         # Two step conversion process required to convert tensors to DataFrames
         # tensor --> numpy array --> dataframe
         temp = temp.numpy()
-        temp = _VSCODE_flattenMultidimensionalData(temp)
+        temp = _VSCODE_flattenMultidimensionalData(temp, truncate_long_strings)
         temp = _VSCODE_pd.DataFrame(temp)
         tensor = temp
         del temp
@@ -52,7 +55,7 @@ def _VSCODE_convertTensorToDataFrame(tensor):
     return tensor
 
 # Function that converts the var passed in into a pandas data frame if possible
-def _VSCODE_convertToDataFrame(df):
+def _VSCODE_convertToDataFrame(df, truncate_long_strings):
     vartype = type(df)
     if isinstance(df, list):
         df = _VSCODE_pd.DataFrame(df)
@@ -66,7 +69,7 @@ def _VSCODE_convertToDataFrame(df):
     elif (
         hasattr(vartype, "__name__") and vartype.__name__ in _VSCODE_allowedTensorTypes
     ):
-        df = _VSCODE_convertTensorToDataFrame(df)
+        df = _VSCODE_convertTensorToDataFrame(df, truncate_long_strings)
     else:
         """Disabling bandit warning for try, except, pass. We want to swallow all exceptions here to not crash on
         variable fetching"""
@@ -97,8 +100,8 @@ def _VSCODE_getRowCount(var):
 
 
 # Function to retrieve a set of rows for a data frame
-def _VSCODE_getDataFrameRows(df, start, end):
-    df = _VSCODE_convertToDataFrame(df)
+def _VSCODE_getDataFrameRows(df, start, end, truncate_long_strings = False):
+    df = _VSCODE_convertToDataFrame(df, truncate_long_strings)
 
     # Turn into JSON using pandas. We use pandas because it's about 3 orders of magnitude faster to turn into JSON
     rows = df.iloc[start:end]
@@ -107,7 +110,7 @@ def _VSCODE_getDataFrameRows(df, start, end):
 
 # Function to get info on the passed in data frame
 def _VSCODE_getDataFrameInfo(df):
-    df = _VSCODE_convertToDataFrame(df)
+    df = _VSCODE_convertToDataFrame(df, False)
     rowCount = _VSCODE_getRowCount(df)
 
     # If any rows, use pandas json to convert a single row to json. Extract

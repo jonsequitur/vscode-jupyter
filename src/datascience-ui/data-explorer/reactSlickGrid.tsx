@@ -4,7 +4,7 @@
 
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { ColumnType, MaxStringCompare } from '../../client/datascience/data-viewing/types';
+import { ColumnType, ISlickGridCellDetail, MaxStringCompare } from '../../client/datascience/data-viewing/types';
 import { KeyCodes } from '../react-common/constants';
 import { measureText } from '../react-common/textMeasure';
 import './globalJQueryImports';
@@ -25,6 +25,7 @@ import 'slickgrid/slick.core';
 import 'slickgrid/slick.dataview';
 // Adding comments to ensure order of imports does not change due to auto formatters.
 // eslint-disable-next-line import/order
+import 'slickgrid/slick.editors';
 import 'slickgrid/slick.grid';
 // Adding comments to ensure order of imports does not change due to auto formatters.
 // eslint-disable-next-line import/order
@@ -35,6 +36,7 @@ import 'slickgrid/slick.grid.css';
 // Make sure our css comes after the slick grid css. We override some of its styles.
 // eslint-disable-next-line import/order
 import './reactSlickGrid.css';
+import { isTestExecution } from '../../client/common/constants';
 /*
 WARNING: Do not change the order of these imports.
 Slick grid MUST be imported after we load jQuery and other stuff from `./globalJQueryImports`
@@ -45,6 +47,7 @@ const MaxColumnWidth = 500;
 
 export interface ISlickRow extends Slick.SlickData {
     id: string;
+    index?: number;
 }
 
 export interface ISlickGridAdd {
@@ -56,9 +59,12 @@ export interface ISlickGridProps {
     idProperty: string;
     columns: Slick.Column<ISlickRow>[];
     rowsAdded: Slick.Event<ISlickGridAdd>;
+    getCellDetail(row: number, cell: number): void;
+    setCellDetail: Slick.Event<ISlickGridCellDetail>;
     filterRowsText: string;
     filterRowsTooltip: string;
     forceHeight?: number;
+    ndim?: number;
 }
 
 interface ISlickGridState {
@@ -142,6 +148,7 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
         this.containerRef = React.createRef<HTMLDivElement>();
         this.measureRef = React.createRef<HTMLDivElement>();
         this.props.rowsAdded.subscribe(this.addedRows);
+        this.props.setCellDetail.subscribe(this.displayCellDetail);
     }
 
     // eslint-disable-next-line
@@ -161,18 +168,22 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
             // Setup options for the grid
             const options: Slick.GridOptions<Slick.SlickData> = {
                 asyncEditorLoading: true,
-                editable: false,
+                editable: true,
+                autoEdit: false,
                 enableCellNavigation: true,
+                editorCellNavOnLRKeys: true,
+                enableTextSelectionOnCells: true,
                 showHeaderRow: true,
                 enableColumnReorder: false,
                 explicitInitialization: false,
                 viewportClass: 'react-grid',
-                rowHeight: this.getAppropiateRowHeight(fontSize)
+                rowHeight: this.getAppropriateRowHeight(fontSize)
             };
 
             // Transform columns so they are sortable and stylable
             const columns = this.props.columns.map((c) => {
                 c.sortable = true;
+                c.editor = Slick.Editors.Text;
                 c.headerCssClass = 'react-grid-header-cell';
                 c.cssClass = 'react-grid-cell';
                 return c;
@@ -231,6 +242,15 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
 
             // Setup the sorting
             grid.onSort.subscribe(this.sort);
+
+            grid.onDblClick.subscribe(this.slickgridHandleDblClick);
+
+            // Hack for tests because querying the enzyme wrapper for a target cell to programmatically
+            // simulate a double click on and force it into edit mode is not working, possibly related to
+            // https://github.com/enzymejs/enzyme/issues/1952
+            if (isTestExecution()) {
+                grid.onBeforeEditCell.subscribe(this.slickgridHandleDblClick);
+            }
 
             // Init to force the actual render.
             grid.init();
@@ -316,7 +336,7 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
     // These adjustments for the row height come from trial and error, by changing the font size in VS code,
     // opening a new Data Viewer, and making sure the data is visible
     // They were tested up to a font size of 60, and the row height still allows the content to be seen
-    private getAppropiateRowHeight(fontSize: number): number {
+    private getAppropriateRowHeight(fontSize: number): number {
         switch (true) {
             case fontSize < 15:
                 return fontSize + 4;
@@ -339,6 +359,21 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
         }
     };
 
+    private slickgridHandleDblClick = (_e: any, args: { row: number, cell: number }): void => {
+        if (this.props.ndim && this.props.ndim > 2) {
+            // Data view's coordinates do not necessarily correspond to the actual data
+            // coordinates e.g. if the data view is in sort or filter mode
+            // Figure out which underlying data coordinates we actually want
+            const item = this.dataView.getItem(args.row);
+            const dataRow = item['index'];
+            if (dataRow !== undefined) {
+                // Ask for the full value of the cell
+                // Subtract one from the requested column because data viewer has a leading index column
+                this.props.getCellDetail(dataRow, args.cell - 1);
+            }
+        }
+    }
+
     private slickgridHandleKeyDown = (e: KeyboardEvent): void => {
         let handled: boolean = false;
 
@@ -347,6 +382,25 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
 
         if (this.state.grid) {
             // The slickgrid version of jquery populates keyCode not code, so use the numerical values here
+            if (document.activeElement?.className === 'editor-text') {
+                // When a cell is being edited, allow user to use left and right arrows to navigate contents horizontally
+                switch (e.keyCode) {
+                    case KeyCodes.LeftArrow:
+                    case KeyCodes.RightArrow:
+                        return;
+                    case KeyCodes.Escape:
+                    case KeyCodes.UpArrow:
+                    case KeyCodes.DownArrow:
+                    case KeyCodes.PageUp:
+                    case KeyCodes.PageDown:
+                    case KeyCodes.End:
+                    case KeyCodes.Home:
+                        break;
+                    // Suppress all other keystrokes while input box has focus
+                    default:
+                        handled = true;
+                }
+            }
             switch (e.keyCode) {
                 case KeyCodes.LeftArrow:
                     this.state.grid.navigateLeft();
@@ -399,7 +453,7 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
             const document = this.containerRef.current.ownerDocument;
             if (document) {
                 const cssOverrideNode = document.createElement('style');
-                const rule = `.${gridName} .slick-cell {height: ${this.getAppropiateRowHeight(
+                const rule = `.${gridName} .slick-cell {height: ${this.getAppropriateRowHeight(
                     this.state.fontSize
                 )}px;}`;
                 cssOverrideNode.setAttribute('type', 'text/css');
@@ -479,6 +533,21 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
         // This should cause a rowsChanged event in the dataview that will
         // refresh the grid.
     };
+
+    private displayCellDetail = (_e: Slick.EventData, payload: ISlickGridCellDetail) => {
+        const { row, column, data } = payload;
+
+        // Map the data item back to the row it's currently being displayed in within the data view
+        const viewRow = this.dataView.getRowById(row.toString());
+        const item = this.dataView.getItem(viewRow);
+        (item as any)[column] = data;
+
+        if (item.index !== undefined) {
+            // Update the item in the data viewer
+            this.dataView.updateItem((item.index).toString(), item);
+        }
+
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private filter(item: any, _args: any): boolean {

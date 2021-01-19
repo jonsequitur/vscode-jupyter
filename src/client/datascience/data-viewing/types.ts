@@ -25,6 +25,8 @@ export namespace DataViewerMessages {
     export const GetRowsRequest = 'get_rows_request';
     export const GetRowsResponse = 'get_rows_response';
     export const CompletedData = 'complete';
+    export const GetCellDetailRequest = 'get_cell_detail_request';
+    export const GetCellDetailResponse = 'get_cell_detail_response';
 }
 
 export interface IGetRowsRequest {
@@ -48,12 +50,15 @@ export type IDataViewerMapping = {
     [DataViewerMessages.GetRowsRequest]: IGetRowsRequest;
     [DataViewerMessages.GetRowsResponse]: IGetRowsResponse;
     [DataViewerMessages.CompletedData]: never | undefined;
+    [DataViewerMessages.GetCellDetailRequest]: ISlickGridCellCoordinates; 
+    [DataViewerMessages.GetCellDetailResponse]: ISlickGridCellDetail;
 };
 
 export interface IDataFrameInfo {
     columns?: { key: string; type: ColumnType }[];
     indexColumn?: string;
     rowCount?: number;
+    shape?: string;
 }
 
 export interface IDataViewerDataProvider {
@@ -61,6 +66,7 @@ export interface IDataViewerDataProvider {
     getDataFrameInfo(): Promise<IDataFrameInfo>;
     getAllRows(): Promise<IRowsResponse>;
     getRows(start: number, end: number): Promise<IRowsResponse>;
+    getDetail?(row: number, column: number): Promise<ISlickGridCellDetail | undefined>; 
 }
 
 export enum ColumnType {
@@ -80,4 +86,13 @@ export interface IDataViewerFactory {
 export const IDataViewer = Symbol('IDataViewer');
 export interface IDataViewer extends IDisposable {
     showData(dataProvider: IDataViewerDataProvider, title: string): Promise<void>;
+}
+
+export interface ISlickGridCellCoordinates {
+    row: number;
+    column: number;
+}
+
+export interface ISlickGridCellDetail extends ISlickGridCellCoordinates {
+    data: string | undefined;
 }

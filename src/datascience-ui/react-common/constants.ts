@@ -2,6 +2,7 @@ import { OSType } from '../../client/common/utils/platform';
 
 // Javascript keyCodes
 export const KeyCodes = {
+    Escape: 27,
     LeftArrow: 37,
     UpArrow: 38,
     RightArrow: 39,

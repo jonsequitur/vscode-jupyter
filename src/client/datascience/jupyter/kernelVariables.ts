@@ -138,7 +138,8 @@ export class KernelVariables implements IJupyterVariables {
         targetVariable: IJupyterVariable,
         start: number,
         end: number,
-        notebook: INotebook
+        notebook: INotebook,
+        truncateStrings = 'True'
     ): Promise<{}> {
         // Import the data frame script directory if we haven't already
         await this.importDataFrameScripts(notebook);
@@ -149,7 +150,7 @@ export class KernelVariables implements IJupyterVariables {
 
         // Then execute a call to get the rows and turn it into JSON
         const results = await notebook.execute(
-            `print(${DataFrameLoading.DataFrameRowFunc}(${targetVariable.name}, ${start}, ${end}))`,
+            `print(${DataFrameLoading.DataFrameRowFunc}(${targetVariable.name}, ${start}, ${end}, ${truncateStrings}))`,
             Identifiers.EmptyFileName,
             0,
             uuid(),

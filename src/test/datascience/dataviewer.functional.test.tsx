@@ -32,6 +32,7 @@ import { noop, sleep } from '../core';
 import { DataScienceIocContainer } from './dataScienceIocContainer';
 import { takeSnapshot, writeDiffSnapshot } from './helpers';
 import { IMountedWebView } from './mountedWebView';
+import { retryIfFail } from '../common';
 
 // import { asyncDump } from '../common/asyncDump';
 suite('DataScience DataViewer tests', () => {
@@ -103,7 +104,7 @@ suite('DataScience DataViewer tests', () => {
             type,
             size: 0,
             truncated: true,
-            shape: '',
+            shape: '(42, 42, 42)',
             count: 0
         };
     }
@@ -187,6 +188,19 @@ suite('DataScience DataViewer tests', () => {
         }
     }
 
+    function editCell(wrapper: ReactWrapper<any, Readonly<{}>, React.Component>, row: number, column: number) {
+        const mainPanelWrapper = wrapper.find(MainPanel);
+        assert.ok(mainPanelWrapper && mainPanelWrapper.length > 0, 'Grid not found to sort on');
+        const mainPanel = mainPanelWrapper.instance() as MainPanel;
+        assert.ok(mainPanel, 'Main panel instance not found');
+        const reactGrid = (mainPanel as any).grid.current as ReactSlickGrid;
+        assert.ok(reactGrid, 'Grid control not found');
+        reactGrid.state.grid?.setActiveCell(row, column);
+        reactGrid.state.grid?.render();
+        reactGrid.state.grid?.editActiveCell();
+        wrapper.update();
+    }
+
     async function filterRows(
         wrapper: ReactWrapper<any, Readonly<{}>, React.Component>,
         filterCol: string,
@@ -226,7 +240,7 @@ suite('DataScience DataViewer tests', () => {
             const span = cells[i].querySelector('div.cell-formatter span') as HTMLSpanElement;
             assert.ok(span, `Span ${i} not found`);
             const val = rows[i].toString();
-            assert.equal(val, span.innerHTML, `Row ${i} not matching. ${span.innerHTML} !== ${val}`);
+            assert.equal(span.innerHTML, val, `Row ${i} not matching. ${span.innerHTML} !== ${val}`);
         }
     }
 
@@ -322,5 +336,37 @@ suite('DataScience DataViewer tests', () => {
         assert.ok(dv, 'DataViewer not created');
         await gotAllRows;
         verifyRows(wrapper.wrapper, [0, 0, 1, 1]);
+    });
+
+    runMountedTest('3D PyTorch tensors', async (wrapper) => {
+        // Should be able to successfully create data viewer for 3D data
+        await injectCode('import torch\r\nfoo = torch.LongTensor([[[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]]])');
+        const gotAllRows = getCompletedPromise(wrapper);
+        const dv = await createJupyterVariableDataViewer('foo', 'Tensor');
+        assert.ok(dv, 'DataViewer not created');
+        await gotAllRows;
+        // Confirm that values are initially truncated
+        verifyRows(wrapper.wrapper, [0, '[1, 2, 3, ...]', '[7, 8, 9, ...]']);
+        // Put cell into edit mode and verify that input value is updated to be the non-truncated, stringified value
+        wrapper.wrapper.update();
+        editCell(wrapper.wrapper, 0, 1);
+        wrapper.wrapper.update();
+        // Should use waitForMessage but it's not working for some reason
+        retryIfFail(async () => verifyRows(wrapper.wrapper, [0, '[1, 2, 3, 4, 5, 6]', '[7, 8, 9, 10, 11, 12]']), 20_000);
+    });
+
+    runMountedTest('Ensure showing non-truncated cell contents for 3D data is resilient to sorts', async (wrapper) => {
+        await injectCode('import torch\r\nfoo = torch.LongTensor([[[1, 2, 3, 4, 5, 6]], [[7, 8, 9, 10, 11, 12]]])');
+        const gotAllRows = getCompletedPromise(wrapper);
+        const dv = await createJupyterVariableDataViewer('foo', 'Tensor');
+        assert.ok(dv, 'DataViewer not created');
+        await gotAllRows;
+
+        // Sort the rows and ensure that the update is reflected to the correct data view output cell while the sort is active
+        sortRows(wrapper.wrapper, '0', false);
+        wrapper.wrapper.update();
+        editCell(wrapper.wrapper, 0, 0);
+        wrapper.wrapper.update();
+        retryIfFail(async () => verifyRows(wrapper.wrapper, [1, '[7, 8, 9, 10, 11, 12]', 0, '[1, 2, 3, ...]']));
     });
 });

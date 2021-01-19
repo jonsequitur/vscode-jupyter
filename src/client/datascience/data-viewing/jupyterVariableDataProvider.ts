@@ -8,7 +8,7 @@ import { inject, injectable, named } from 'inversify';
 import { Identifiers } from '../constants';
 import { IJupyterVariable, IJupyterVariableDataProvider, IJupyterVariables, INotebook } from '../types';
 import { DataViewerDependencyService } from './dataViewerDependencyService';
-import { ColumnType, IDataFrameInfo, IRowsResponse } from './types';
+import { ColumnType, IDataFrameInfo, IRowsResponse, ISlickGridCellDetail } from './types';
 
 @injectable()
 export class JupyterVariableDataProvider implements IJupyterVariableDataProvider {
@@ -62,6 +62,31 @@ export class JupyterVariableDataProvider implements IJupyterVariableDataProvider
         this.variable = variable;
     }
 
+    public async getDetail(row: number, column: number): Promise<ISlickGridCellDetail | undefined> {
+        let data: string = ''; // Localize with some error message or just don't send a response
+        await this.ensureInitialized();
+        if (this.variable && this.variable.rowCount) {
+            const dataFrameRow = await this.variableManager.getDataFrameRows(
+                this.variable,
+                row,
+                row+1,
+                this.notebook,
+                'False'
+            );
+            if (dataFrameRow && dataFrameRow.data && dataFrameRow.data instanceof Array && dataFrameRow.data.length === 1) {
+                const rowData = dataFrameRow.data[0] as Object;
+                if (rowData.hasOwnProperty(column)) {
+                    data = (rowData as any)[column];
+                    return {
+                        row,
+                        column,
+                        data,
+                    };
+                }
+            }
+        }
+    }
+
     public async getDataFrameInfo(): Promise<IDataFrameInfo> {
         let dataFrameInfo: IDataFrameInfo = {};
         await this.ensureInitialized();
@@ -71,7 +96,8 @@ export class JupyterVariableDataProvider implements IJupyterVariableDataProvider
                     ? JupyterVariableDataProvider.getNormalizedColumns(this.variable.columns)
                     : this.variable.columns,
                 indexColumn: this.variable.indexColumn,
-                rowCount: this.variable.rowCount
+                rowCount: this.variable.rowCount,
+                shape: this.variable.shape
             };
         }
         return dataFrameInfo;

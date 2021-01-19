@@ -365,12 +365,15 @@ suite('DataScience DataViewer tests', () => {
         const dv = await createJupyterVariableDataViewer('foo', 'ndarray');
         assert.ok(dv, 'DataViewer not created');
         await gotAllRows;
-        verifyRows(wrapper.wrapper, [0, `[[ 0,  1,  2,  3],
+        verifyRows(wrapper.wrapper, [
+            0,
+            `[[ 0,  1,  2,  3],
  [ 4,  5,  6,  7],
  [ 8,  9, 10, 11]]`,
-`[[12, 13, 14, 15],
+            `[[12, 13, 14, 15],
  [16, 17, 18, 19],
- [20, 21, 22, 23]]`]);
+ [20, 21, 22, 23]]`
+        ]);
     });
 
     runMountedTest('Ensure showing non-truncated cell contents for 3D data is resilient to sorts', async (wrapper) => {

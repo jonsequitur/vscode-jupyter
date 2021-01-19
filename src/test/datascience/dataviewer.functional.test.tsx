@@ -352,7 +352,10 @@ suite('DataScience DataViewer tests', () => {
         editCell(wrapper.wrapper, 0, 1);
         wrapper.wrapper.update();
         // Should use waitForMessage but it's not working for some reason
-        retryIfFail(async () => verifyRows(wrapper.wrapper, [0, '[1, 2, 3, 4, 5, 6]', '[7, 8, 9, 10, 11, 12]']), 20_000);
+        retryIfFail(
+            async () => verifyRows(wrapper.wrapper, [0, '[1, 2, 3, 4, 5, 6]', '[7, 8, 9, 10, 11, 12]']),
+            20_000
+        );
     });
 
     runMountedTest('Ensure showing non-truncated cell contents for 3D data is resilient to sorts', async (wrapper) => {

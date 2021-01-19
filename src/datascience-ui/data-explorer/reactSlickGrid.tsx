@@ -359,7 +359,7 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
         }
     };
 
-    private slickgridHandleDblClick = (_e: any, args: { row: number, cell: number }): void => {
+    private slickgridHandleDblClick = (_e: any, args: { row: number; cell: number }): void => {
         if (this.props.ndim && this.props.ndim > 2) {
             // Data view's coordinates do not necessarily correspond to the actual data
             // coordinates e.g. if the data view is in sort or filter mode
@@ -372,7 +372,7 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
                 this.props.getCellDetail(dataRow, args.cell - 1);
             }
         }
-    }
+    };
 
     private slickgridHandleKeyDown = (e: KeyboardEvent): void => {
         let handled: boolean = false;
@@ -544,10 +544,9 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
 
         if (item.index !== undefined) {
             // Update the item in the data viewer
-            this.dataView.updateItem((item.index).toString(), item);
+            this.dataView.updateItem(item.index.toString(), item);
         }
-
-    }
+    };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private filter(item: any, _args: any): boolean {

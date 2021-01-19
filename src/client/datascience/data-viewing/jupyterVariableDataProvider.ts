@@ -63,24 +63,29 @@ export class JupyterVariableDataProvider implements IJupyterVariableDataProvider
     }
 
     public async getDetail(row: number, column: number): Promise<ISlickGridCellDetail | undefined> {
-        let data: string = ''; // Localize with some error message or just don't send a response
         await this.ensureInitialized();
         if (this.variable && this.variable.rowCount) {
             const dataFrameRow = await this.variableManager.getDataFrameRows(
                 this.variable,
                 row,
-                row+1,
+                row + 1,
                 this.notebook,
                 'False'
             );
-            if (dataFrameRow && dataFrameRow.data && dataFrameRow.data instanceof Array && dataFrameRow.data.length === 1) {
+            if (
+                dataFrameRow &&
+                dataFrameRow.data &&
+                dataFrameRow.data instanceof Array &&
+                dataFrameRow.data.length === 1
+            ) {
                 const rowData = dataFrameRow.data[0] as Object;
                 if (rowData.hasOwnProperty(column)) {
-                    data = (rowData as any)[column];
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const data = (rowData as any)[column];
                     return {
                         row,
                         column,
-                        data,
+                        data
                     };
                 }
             }

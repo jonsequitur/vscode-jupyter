@@ -9,7 +9,7 @@ _VSCODE_allowedTensorTypes = ["Tensor", "EagerTensor"]
 
 # Function to convert >2D numpy arrays to a flat 2D string representation
 def _VSCODE_flattenMultidimensionalData(data, truncate_long_strings):
-    if hasattr(data, 'ndim') and data.ndim > 2:
+    if hasattr(data, "ndim") and data.ndim > 2:
         x_len = data.shape[0]
         y_len = data.shape[1]
         flattened = _VSCODE_np.empty((x_len, y_len), dtype=object)
@@ -19,17 +19,22 @@ def _VSCODE_flattenMultidimensionalData(data, truncate_long_strings):
                     # Generate a preview of the data
                     flat = data[i][j]
                     first_three = flat[:3]
-                    currval = _VSCODE_np.array2string(first_three, separator=', ')
-                    flattened[i][j] = currval[:-1] + ", ...]" if len(flat) > 3 else currval
+                    currval = _VSCODE_np.array2string(first_three, separator=", ")
+                    flattened[i][j] = (
+                        currval[:-1] + ", ...]" if len(flat) > 3 else currval
+                    )
                     del flat
                     del first_three
                     del currval
                 else:
-                    flattened[i][j] = _VSCODE_np.array2string(data[i][j], separator=', ')
+                    flattened[i][j] = _VSCODE_np.array2string(
+                        data[i][j], separator=", "
+                    )
         del x_len
         del y_len
         return flattened
     return data
+
 
 # Function that converts tensors to DataFrames
 def _VSCODE_convertTensorToDataFrame(tensor, truncate_long_strings):
@@ -53,6 +58,7 @@ def _VSCODE_convertTensorToDataFrame(tensor, truncate_long_strings):
         # but avoid a crash just in case the current variable doesn't
         pass
     return tensor
+
 
 # Function that converts the var passed in into a pandas data frame if possible
 def _VSCODE_convertToDataFrame(df, truncate_long_strings):
@@ -100,7 +106,7 @@ def _VSCODE_getRowCount(var):
 
 
 # Function to retrieve a set of rows for a data frame
-def _VSCODE_getDataFrameRows(df, start, end, truncate_long_strings = False):
+def _VSCODE_getDataFrameRows(df, start, end, truncate_long_strings=False):
     df = _VSCODE_convertToDataFrame(df, truncate_long_strings)
 
     # Turn into JSON using pandas. We use pandas because it's about 3 orders of magnitude faster to turn into JSON

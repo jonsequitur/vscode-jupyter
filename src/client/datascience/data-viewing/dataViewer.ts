@@ -106,7 +106,7 @@ export class DataViewer extends WebviewPanelHost<IDataViewerMapping> implements 
             case DataViewerMessages.GetRowsRequest:
                 this.getRowChunk(payload as IGetRowsRequest).ignoreErrors();
                 break;
-            
+
             case DataViewerMessages.GetCellDetailRequest:
                 this.getCellDetail(payload).ignoreErrors();
                 break;
@@ -192,6 +192,7 @@ export class DataViewer extends WebviewPanelHost<IDataViewerMapping> implements 
             if (e instanceof JupyterDataRateLimitError) {
                 traceError(e);
                 const actionTitle = localize.DataScience.pythonInteractiveHelpLink();
+                // eslint-disable-next-line @typescript-eslint/no-floating-promises
                 this.applicationShell.showErrorMessage(e.toString(), actionTitle).then((v) => {
                     // User clicked on the link, open it.
                     if (v === actionTitle) {
@@ -201,7 +202,7 @@ export class DataViewer extends WebviewPanelHost<IDataViewerMapping> implements 
                 this.dispose();
             }
             traceError(e);
-            this.applicationShell.showErrorMessage(e);
+            await this.applicationShell.showErrorMessage(e);
         } finally {
             this.sendElapsedTimeTelemetry();
         }

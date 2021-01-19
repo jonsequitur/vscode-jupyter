@@ -349,7 +349,7 @@ export class MainPanel extends React.Component<IMainPanelProps, IMainPanelState>
 
     private getCellDetail = (row: number, column: number) => {
         this.sendMessage(DataViewerMessages.GetCellDetailRequest, { row, column });
-    }
+    };
 
     private handleGetCellDetailResponse(data: ISlickGridCellDetail) {
         this.setCellDetailEvent.notify(data);

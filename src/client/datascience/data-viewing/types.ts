@@ -50,7 +50,7 @@ export type IDataViewerMapping = {
     [DataViewerMessages.GetRowsRequest]: IGetRowsRequest;
     [DataViewerMessages.GetRowsResponse]: IGetRowsResponse;
     [DataViewerMessages.CompletedData]: never | undefined;
-    [DataViewerMessages.GetCellDetailRequest]: ISlickGridCellCoordinates; 
+    [DataViewerMessages.GetCellDetailRequest]: ISlickGridCellCoordinates;
     [DataViewerMessages.GetCellDetailResponse]: ISlickGridCellDetail;
 };
 
@@ -66,7 +66,7 @@ export interface IDataViewerDataProvider {
     getDataFrameInfo(): Promise<IDataFrameInfo>;
     getAllRows(): Promise<IRowsResponse>;
     getRows(start: number, end: number): Promise<IRowsResponse>;
-    getDetail?(row: number, column: number): Promise<ISlickGridCellDetail | undefined>; 
+    getDetail?(row: number, column: number): Promise<ISlickGridCellDetail | undefined>;
 }
 
 export enum ColumnType {

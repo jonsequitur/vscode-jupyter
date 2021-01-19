@@ -352,10 +352,25 @@ suite('DataScience DataViewer tests', () => {
         editCell(wrapper.wrapper, 0, 1);
         wrapper.wrapper.update();
         // Should use waitForMessage but it's not working for some reason
-        retryIfFail(
+        await retryIfFail(
             async () => verifyRows(wrapper.wrapper, [0, '[1, 2, 3, 4, 5, 6]', '[7, 8, 9, 10, 11, 12]']),
             20_000
         );
+    });
+
+    runMountedTest('4D numpy ndarrays', async (wrapper) => {
+        // Should be able to successfully create data viewer for >2D numpy ndarrays
+        await injectCode('import numpy as np\r\nfoo = np.arange(24).reshape((1, 2, 3, 4))');
+        const gotAllRows = getCompletedPromise(wrapper);
+        const dv = await createJupyterVariableDataViewer('foo', 'ndarray');
+        assert.ok(dv, 'DataViewer not created');
+        await gotAllRows;
+        verifyRows(wrapper.wrapper, [0, `[[ 0,  1,  2,  3],
+ [ 4,  5,  6,  7],
+ [ 8,  9, 10, 11]]`,
+`[[12, 13, 14, 15],
+ [16, 17, 18, 19],
+ [20, 21, 22, 23]]`]);
     });
 
     runMountedTest('Ensure showing non-truncated cell contents for 3D data is resilient to sorts', async (wrapper) => {
@@ -370,6 +385,6 @@ suite('DataScience DataViewer tests', () => {
         wrapper.wrapper.update();
         editCell(wrapper.wrapper, 0, 0);
         wrapper.wrapper.update();
-        retryIfFail(async () => verifyRows(wrapper.wrapper, [1, '[7, 8, 9, 10, 11, 12]', 0, '[1, 2, 3, ...]']));
+        await retryIfFail(async () => verifyRows(wrapper.wrapper, [1, '[7, 8, 9, 10, 11, 12]', 0, '[1, 2, 3, ...]']));
     });
 });

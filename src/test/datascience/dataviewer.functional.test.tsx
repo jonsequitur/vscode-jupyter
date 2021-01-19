@@ -188,14 +188,18 @@ suite('DataScience DataViewer tests', () => {
         }
     }
 
-    function editCell(wrapper: ReactWrapper<any, Readonly<{}>, React.Component>, row: number, column: number) {
+    function editCell(
+        wrapper: ReactWrapper<any, Readonly<{}>, React.Component>,
+        dataViewRow: number,
+        dataViewColumn: number
+    ) {
         const mainPanelWrapper = wrapper.find(MainPanel);
         assert.ok(mainPanelWrapper && mainPanelWrapper.length > 0, 'Grid not found to sort on');
         const mainPanel = mainPanelWrapper.instance() as MainPanel;
         assert.ok(mainPanel, 'Main panel instance not found');
         const reactGrid = (mainPanel as any).grid.current as ReactSlickGrid;
         assert.ok(reactGrid, 'Grid control not found');
-        reactGrid.state.grid?.setActiveCell(row, column);
+        reactGrid.state.grid?.setActiveCell(dataViewRow, dataViewColumn);
         reactGrid.state.grid?.render();
         reactGrid.state.grid?.editActiveCell();
         wrapper.update();
@@ -350,12 +354,11 @@ suite('DataScience DataViewer tests', () => {
         // Put cell into edit mode and verify that input value is updated to be the non-truncated, stringified value
         wrapper.wrapper.update();
         editCell(wrapper.wrapper, 0, 1);
-        wrapper.wrapper.update();
         // Should use waitForMessage but it's not working for some reason
-        await retryIfFail(
-            async () => verifyRows(wrapper.wrapper, [0, '[1, 2, 3, 4, 5, 6]', '[7, 8, 9, 10, 11, 12]']),
-            20_000
-        );
+        await retryIfFail(async () => {
+            verifyRows(wrapper.wrapper, [0, '[1, 2, 3, 4, 5, 6]', '[7, 8, 9, ...]']);
+            wrapper.wrapper.update();
+        }, 20_000);
     });
 
     runMountedTest('4D numpy ndarrays', async (wrapper) => {
@@ -379,6 +382,7 @@ suite('DataScience DataViewer tests', () => {
     runMountedTest('Ensure showing non-truncated cell contents for 3D data is resilient to sorts', async (wrapper) => {
         await injectCode('import torch\r\nfoo = torch.LongTensor([[[1, 2, 3, 4, 5, 6]], [[7, 8, 9, 10, 11, 12]]])');
         const gotAllRows = getCompletedPromise(wrapper);
+        const gotDetailUpdate = wrapper.waitForMessage(DataViewerMessages.GetCellDetailResponse);
         const dv = await createJupyterVariableDataViewer('foo', 'Tensor');
         assert.ok(dv, 'DataViewer not created');
         await gotAllRows;
@@ -386,8 +390,9 @@ suite('DataScience DataViewer tests', () => {
         // Sort the rows and ensure that the update is reflected to the correct data view output cell while the sort is active
         sortRows(wrapper.wrapper, '0', false);
         wrapper.wrapper.update();
-        editCell(wrapper.wrapper, 0, 0);
+        editCell(wrapper.wrapper, 0, 1);
         wrapper.wrapper.update();
+        await gotDetailUpdate;
         await retryIfFail(async () => verifyRows(wrapper.wrapper, [1, '[7, 8, 9, 10, 11, 12]', 0, '[1, 2, 3, ...]']));
     });
 });

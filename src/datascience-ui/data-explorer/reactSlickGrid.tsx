@@ -544,7 +544,7 @@ export class ReactSlickGrid extends React.Component<ISlickGridProps, ISlickGridS
 
         if (item.index !== undefined) {
             // Update the item in the data viewer
-            this.dataView.updateItem(item.index.toString(), item);
+            this.dataView.updateItem(item.index, item);
         }
     };
 

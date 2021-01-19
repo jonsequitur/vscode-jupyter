@@ -35,10 +35,11 @@ def _VSCODE_convertNumpyNdArrayToDataFrame(data, truncate_long_strings):
                         flattened[i][j] = _VSCODE_np.array2string(
                             data[i][j], separator=", "
                         )
-            flattened = _VSCODE_pd.DataFrame(flattened)
+            data = flattened
             del x_len
             del y_len
-            return flattened
+            del flattened
+        return _VSCODE_pd.DataFrame(data)
     except:
         pass
     return data

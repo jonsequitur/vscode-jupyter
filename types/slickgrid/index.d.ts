@@ -1662,7 +1662,7 @@ declare namespace Slick {
 			public setRefreshHints(hints: RefreshHints): void;
 			public setFilterArgs(args: any): void;
 			public refresh(): void;
-			public updateItem(id: string, item: T): void;
+			public updateItem(id: string | number, item: T): void;
 			public insertItem(insertBefore: number, item: T): void;
 			public addItem(item: T): void;
 			public deleteItem(id: string): void;

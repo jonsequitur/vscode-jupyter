@@ -382,7 +382,6 @@ suite('DataScience DataViewer tests', () => {
     runMountedTest('Ensure showing non-truncated cell contents for 3D data is resilient to sorts', async (wrapper) => {
         await injectCode('import torch\r\nfoo = torch.LongTensor([[[1, 2, 3, 4, 5, 6]], [[7, 8, 9, 10, 11, 12]]])');
         const gotAllRows = getCompletedPromise(wrapper);
-        const gotDetailUpdate = wrapper.waitForMessage(DataViewerMessages.GetCellDetailResponse);
         const dv = await createJupyterVariableDataViewer('foo', 'Tensor');
         assert.ok(dv, 'DataViewer not created');
         await gotAllRows;
@@ -392,7 +391,6 @@ suite('DataScience DataViewer tests', () => {
         wrapper.wrapper.update();
         editCell(wrapper.wrapper, 0, 1);
         wrapper.wrapper.update();
-        await gotDetailUpdate;
         await retryIfFail(async () => verifyRows(wrapper.wrapper, [1, '[7, 8, 9, 10, 11, 12]', 0, '[1, 2, 3, ...]']));
     });
 });

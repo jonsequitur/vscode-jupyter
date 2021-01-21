@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+// eslint-disable
+
 // Copy nb section from https://github.com/microsoft/vscode/blob/master/src/vs/vscode.proposed.d.ts.
 declare module 'vscode' {
     //#region @rebornix: Notebook
@@ -218,6 +220,17 @@ declare module 'vscode' {
          * The document's current run state
          */
         runState?: NotebookRunState;
+
+        /**
+         * Whether the document is trusted, default to true
+         * When false, insecure outputs like HTML, JavaScript, SVG will not be rendered.
+         */
+        trusted?: boolean;
+
+        /**
+         * Languages the document supports
+         */
+        languages?: string[];
     }
 
     export interface NotebookDocumentContentOptions {
@@ -313,11 +326,17 @@ declare module 'vscode' {
          * The range will always be revealed in the center of the viewport.
          */
         InCenter = 1,
+
         /**
          * If the range is outside the viewport, it will be revealed in the center of the viewport.
          * Otherwise, it will be revealed with as little scrolling as possible.
          */
-        InCenterIfOutsideViewport = 2
+        InCenterIfOutsideViewport = 2,
+
+        /**
+         * The range will always be revealed at the top of the viewport.
+         */
+        AtTop = 3
     }
 
     export interface NotebookEditor {
@@ -575,15 +594,19 @@ declare module 'vscode' {
          * Content providers should always use [file system providers](#FileSystemProvider) to
          * resolve the raw content for `uri` as the resouce is not necessarily a file on disk.
          */
-        openNotebook(uri: Uri, openContext: NotebookDocumentOpenContext): NotebookData | Promise<NotebookData>;
-        resolveNotebook(document: NotebookDocument, webview: NotebookCommunication): Promise<void>;
-        saveNotebook(document: NotebookDocument, cancellation: CancellationToken): Promise<void>;
-        saveNotebookAs(targetResource: Uri, document: NotebookDocument, cancellation: CancellationToken): Promise<void>;
+        openNotebook(uri: Uri, openContext: NotebookDocumentOpenContext): NotebookData | Thenable<NotebookData>;
+        resolveNotebook(document: NotebookDocument, webview: NotebookCommunication): Thenable<void>;
+        saveNotebook(document: NotebookDocument, cancellation: CancellationToken): Thenable<void>;
+        saveNotebookAs(
+            targetResource: Uri,
+            document: NotebookDocument,
+            cancellation: CancellationToken
+        ): Thenable<void>;
         backupNotebook(
             document: NotebookDocument,
             context: NotebookDocumentBackupContext,
             cancellation: CancellationToken
-        ): Promise<NotebookDocumentBackup>;
+        ): Thenable<NotebookDocumentBackup>;
     }
 
     export interface NotebookKernel {
@@ -678,7 +701,7 @@ declare module 'vscode' {
             provider: NotebookKernelProvider
         ): Disposable;
 
-        export function openNotebookDocument(uri: Uri, viewType?: string): Promise<NotebookDocument>;
+        export function openNotebookDocument(uri: Uri, viewType?: string): Thenable<NotebookDocument>;
         export const onDidOpenNotebookDocument: Event<NotebookDocument>;
         export const onDidCloseNotebookDocument: Event<NotebookDocument>;
         export const onDidSaveNotebookDocument: Event<NotebookDocument>;
@@ -735,8 +758,9 @@ declare module 'vscode' {
         export function showNotebookDocument(
             document: NotebookDocument,
             options?: NotebookDocumentShowOptions
-        ): Promise<NotebookEditor>;
+        ): Thenable<NotebookEditor>;
     }
+
     /**
      * An [event](#Event) which fires when an [AuthenticationProvider](#AuthenticationProvider) is added or removed.
      */
